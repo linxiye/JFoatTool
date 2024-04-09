@@ -52,7 +52,7 @@ JFileAhead::JFileAhead(FILE * apFil, const char *asFid, const long alBufSze, con
         fprintf(JDebug::stddbg, "ufFabOpn(%s):(buf=%p,max=%p,sze=%ld)\n",
                 asFid, mpBuf, mpMax, mlBufSze);
 #endif
-    }
+}
 
 JFileAhead::~JFileAhead() {
 	if (mpBuf != null) free(mpBuf) ;
@@ -326,7 +326,7 @@ int JFileAhead::get_outofbuffer (
             if ( mpInp == mpMax ){
               mpInp = mpBuf ;
             } else if ( mpInp > mpMax ) {
-              fprintf(stderr, "Buffer out of bounds on position %"PRIzd")!", azPos);
+              fprintf(stderr, "Buffer out of bounds on position %d)!", azPos);
               exit(6);
             }
             if ( miBufUsd < mlBufSze ) miBufUsd += liDne ;

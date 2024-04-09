@@ -147,10 +147,12 @@ using namespace std ;
 
 using namespace JojoDiff ;
 
+#define fprintf do{}while(0);
+
 /*******************************************************************************
 * Main function
 *******************************************************************************/
-int main(int aiArgCnt, char *acArg[])
+int jdiff_main(int aiArgCnt, char *acArg[])
 {
   const char *lcFilNamOrg;
   const char *lcFilNamNew;
@@ -202,13 +204,13 @@ int main(int aiArgCnt, char *acArg[])
     } else if (strcmp(acArg[liOptArgCnt], "-bs") == 0) {
         liOptArgCnt ++;
         if (aiArgCnt > liOptArgCnt) {
-        	liBlkSze = atoi(acArg[liOptArgCnt]) ;
+            liBlkSze = atoi(acArg[liOptArgCnt]) ;
         }
     } else if (strcmp(acArg[liOptArgCnt], "-s") == 0) {
         liOptArgCnt++;
         if (aiArgCnt > liOptArgCnt) {
-        	liHshMbt = atoi(acArg[liOptArgCnt]) ;
-        	while (liHshMbt > 1024) liHshMbt /= 1024 ;
+            liHshMbt = atoi(acArg[liOptArgCnt]) ;
+            while (liHshMbt > 1024) liHshMbt /= 1024 ;
         }
     } else if (strcmp(acArg[liOptArgCnt], "-min") == 0) {
         liOptArgCnt++;
@@ -231,7 +233,7 @@ int main(int aiArgCnt, char *acArg[])
         liOutTyp = 2 ;
     } else if (strcmp(acArg[liOptArgCnt], "-b") == 0) {
         // Larger hashtables
-    	lbCmpAll = true ;
+        lbCmpAll = true ;
         llBufSze = 4096 * 1024 ;
         lbSrcBkt = true;
         liSrcScn = 1 ;
@@ -240,7 +242,7 @@ int main(int aiArgCnt, char *acArg[])
         liHshMbt = 32 ; // 32meg elements
     } else if (strcmp(acArg[liOptArgCnt], "-f") == 0) {
         // No compare out-of-buffer
-    	lbCmpAll = false ;
+        lbCmpAll = false ;
         llBufSze = 64 * 1024 ;
         lbSrcBkt = true ;
         liSrcScn = 1  ;
@@ -249,7 +251,7 @@ int main(int aiArgCnt, char *acArg[])
         liHshMbt = 4 ; // 4Meg samples
     } else if (strcmp(acArg[liOptArgCnt], "-ff") == 0) {
         // No compare out-of-buffer and no backtracing
-    	lbCmpAll = false ;
+        lbCmpAll = false ;
         llBufSze = 4096 * 1024 ;
         lbSrcBkt = true ;
         liSrcScn = 0 ;
@@ -312,10 +314,10 @@ int main(int aiArgCnt, char *acArg[])
     off_t maxoff_t_gb = (MAX_OFF_T >> 30) + 1 ;
     const char *maxoff_t_mul = "GB";
     if (maxoff_t_gb > 1024){
-    	maxoff_t_gb = maxoff_t_gb >> 10 ;
-    	maxoff_t_mul = "TB";
+        maxoff_t_gb = maxoff_t_gb >> 10 ;
+        maxoff_t_mul = "TB";
     }
-    fprintf(JDebug::stddbg, "File adressing is %d bit (files up to %"PRIzd" %s), samples are %d bytes.\n\n",
+    fprintf(JDebug::stddbg, "File adressing is %d bit (files up to %d %s), samples are %d bytes.\n\n",
         sizeof(off_t) * 8, maxoff_t_gb, maxoff_t_mul, SMPSZE) ;
   }
 
@@ -398,16 +400,16 @@ int main(int aiArgCnt, char *acArg[])
   liFilOrg = new ifstream();
   liFilOrg->open(lcFilNamOrg, ios_base::in | ios_base::binary) ;
   if (liFilOrg->is_open()){
-	  if (llBufSze > 0){
-		  lpFilOrg = new JFileIStreamAhead(liFilOrg, "Org",  llBufSze, liBlkSze);
-	  } else {
-		  lpFilOrg = new JFileIStream(liFilOrg, "Org");
-	  }
+      if (llBufSze > 0){
+          lpFilOrg = new JFileIStreamAhead(liFilOrg, "Org",  llBufSze, liBlkSze);
+      } else {
+          lpFilOrg = new JFileIStream(liFilOrg, "Org");
+      }
   }
 #endif
   if (lpFilOrg == NULL){
       fprintf(JDebug::stddbg, "Could not open first file %s for reading.\n", lcFilNamOrg);
-      exit(EXI_FRT);
+      return -1;
   }
 
   /* Open second file */
@@ -420,16 +422,16 @@ int main(int aiArgCnt, char *acArg[])
   liFilNew = new ifstream();
   liFilNew->open(lcFilNamNew, ios_base::in | ios_base::binary) ;
   if (liFilNew->is_open()){
-	  if (llBufSze > 0){
-		  lpFilNew = new JFileIStreamAhead(liFilNew, "New",  llBufSze, liBlkSze);
-	  } else {
-		  lpFilNew = new JFileIStream(liFilNew, "New");
-	  }
+      if (llBufSze > 0){
+          lpFilNew = new JFileIStreamAhead(liFilNew, "New",  llBufSze, liBlkSze);
+      } else {
+          lpFilNew = new JFileIStream(liFilNew, "New");
+      }
   }
 #endif
   if (lpFilNew == NULL){
       fprintf(JDebug::stddbg, "Could not open second file %s for reading.\n", lcFilNamNew);
-      exit(EXI_SCD);
+      return -2;
   }
 
   /* Open output */
@@ -439,7 +441,7 @@ int main(int aiArgCnt, char *acArg[])
       lpFilOut = fopen(lcFilNamOut, "wb") ;
   if ( lpFilOut == null ) {
     fprintf(JDebug::stddbg, "Could not open output file %s for writing.\n", lcFilNamOut) ;
-    exit(EXI_OUT);
+      return -3;
   }
 
   /* Init output */
@@ -481,15 +483,15 @@ int main(int aiArgCnt, char *acArg[])
       fprintf(JDebug::stddbg, "Hashtable overloading   = %d\n",   loJDiff.getHsh()->get_hashcolmax() / 3 - 1);
       fprintf(JDebug::stddbg, "Reliability distance    = %d\n",   loJDiff.getHsh()->get_reliability());
       fprintf(JDebug::stddbg, "Random    accesses      = %ld\n",  lpFilOrg->seekcount() + lpFilNew->seekcount());
-      fprintf(JDebug::stddbg, "Delete    bytes         = %"PRIzd"\n", lpOut->gzOutBytDel);
-      fprintf(JDebug::stddbg, "Backtrack bytes         = %"PRIzd"\n", lpOut->gzOutBytBkt);
-      fprintf(JDebug::stddbg, "Escape    bytes written = %"PRIzd"\n", lpOut->gzOutBytEsc);
-      fprintf(JDebug::stddbg, "Control   bytes written = %"PRIzd"\n", lpOut->gzOutBytCtl);
+      fprintf(JDebug::stddbg, "Delete    bytes         = %d\n", lpOut->gzOutBytDel);
+      fprintf(JDebug::stddbg, "Backtrack bytes         = %d\n", lpOut->gzOutBytBkt);
+      fprintf(JDebug::stddbg, "Escape    bytes written = %d\n", lpOut->gzOutBytEsc);
+      fprintf(JDebug::stddbg, "Control   bytes written = %d\n", lpOut->gzOutBytCtl);
   }
   if (liVerbse > 0) {
-      fprintf(JDebug::stddbg, "Equal     bytes         = %"PRIzd"\n", lpOut->gzOutBytEql);
-      fprintf(JDebug::stddbg, "Data      bytes written = %"PRIzd"\n", lpOut->gzOutBytDta);
-      fprintf(JDebug::stddbg, "Overhead  bytes written = %"PRIzd"\n", lpOut->gzOutBytCtl + lpOut->gzOutBytEsc);
+      fprintf(JDebug::stddbg, "Equal     bytes         = %d\n", lpOut->gzOutBytEql);
+      fprintf(JDebug::stddbg, "Data      bytes written = %d\n", lpOut->gzOutBytDta);
+      fprintf(JDebug::stddbg, "Overhead  bytes written = %d\n", lpOut->gzOutBytCtl + lpOut->gzOutBytEsc);
   }
 
   /* Cleanup */
@@ -497,38 +499,38 @@ int main(int aiArgCnt, char *acArg[])
   delete lpFilNew;
 #ifndef __MINGW32__
   if (liFilOrg != NULL) {
-	  liFilOrg->close();
-	  delete liFilOrg ;
+      liFilOrg->close();
+      delete liFilOrg ;
   }
   if (liFilNew != NULL) {
-	  liFilNew->close();
-	  delete liFilNew ;
+      liFilNew->close();
+      delete liFilNew ;
   }
 #endif
   if (lfFilOrg != NULL) fclose(lfFilOrg);
   if (lfFilNew != NULL) fclose(lfFilNew);
-
+  if (lpFilOut != NULL) fclose(lpFilOut);
 
   /* Exit */
   switch (liRet){
   case - EXI_SEK:
       fprintf(JDebug::stddbg, "Seek error !");
-      exit (EXI_SEK);
+      return -4;
   case - EXI_LRG:
       fprintf(JDebug::stddbg, "64-bit offsets not supported !");
-      exit (EXI_LRG);
+      return -5;
   case - EXI_RED:
       fprintf(JDebug::stddbg, "Error reading file !");
-      exit (EXI_RED);
+      return -6;
   case - EXI_WRI:
       fprintf(JDebug::stddbg, "Error writing file !");
-      exit (EXI_WRI);
+      return -7;
   case - EXI_MEM:
       fprintf(JDebug::stddbg, "Error allocating memory !");
-      exit (EXI_MEM);
+      return -8;
   case - EXI_ERR:
       fprintf(JDebug::stddbg, "Spurious error occured !");
-      exit (EXI_ERR);
+      return -9;
   }
 
   if (lpOut->gzOutBytDta == 0 && lpOut->gzOutBytDel == 0)

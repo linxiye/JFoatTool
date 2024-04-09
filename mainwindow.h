@@ -10,6 +10,8 @@ class MainWindow;
 }
 QT_END_NAMESPACE
 
+
+
 class MainWindow : public QMainWindow
 {
     Q_OBJECT
@@ -26,7 +28,9 @@ private slots:
     void on_pushButton_3_clicked();
 
     void LogOut();
-    void Fota_Creat_Patch(QString patchName);
+    int Fota_Creat_Patch(QString patchName);
+    void on_pushButton_4_clicked();
+
 private:
     Ui::MainWindow *ui;
 
@@ -45,4 +49,5 @@ struct fota_file_info
     quint32 file_crc;
 };
 
+int jdiff_main(int aiArgCnt, char *acArg[]);
 #endif // MAINWINDOW_H

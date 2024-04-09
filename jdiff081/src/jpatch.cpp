@@ -288,7 +288,7 @@ void jpatch ( FILE *asFilOrg, FILE *asFilPch, FILE *asFilOut )
 /*******************************************************************************
 * Main function
 *******************************************************************************/
-int main(int aiArgCnt, char *acArg[])
+int jpatch_main(int aiArgCnt, char *acArg[])
 {
   const char *lcFilNamOrg;
   const char *lcFilNamPch;

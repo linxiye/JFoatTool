@@ -5,6 +5,8 @@
 #include <QTextOption>
 #include <QFileInfo>
 #include <QFile>
+#include "filediff.h"
+#include <QSettings>
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
@@ -25,32 +27,65 @@ MainWindow::~MainWindow()
 
 void MainWindow::on_pushButton_clicked()
 {
-    QDir dir(ui->lineEdit->text());
+
+    QString configPath = "config.ini";
+    QSettings settings(configPath, QSettings::IniFormat);
+
+    QString old_core = settings.value("old_core").toString();
+    QDir dir(old_core);
 
     QString filename = QFileDialog::getOpenFileName(this, ui->label->text() + "选择",
                                                         dir.absolutePath(),"Images(*.bin)");
-    ui->lineEdit->setText(filename);
+    if(filename != "")
+    {
+        ui->lineEdit->setText(filename);
+        settings.setValue("old_core", filename);
+    }
 }
 
 
 void MainWindow::on_pushButton_2_clicked()
 {
-    QDir dir(ui->lineEdit_2->text());
+    QString configPath = "config.ini";
+    QSettings settings(configPath, QSettings::IniFormat);
+
+    QString new_core = settings.value("new_core").toString();
+
+    QDir dir(new_core);
     QString filename = QFileDialog::getOpenFileName(this, ui->label_2->text() + "选择",
                                                     dir.absolutePath(),"Images(*.bin)");
-    ui->lineEdit_2->setText(filename);
+    if(filename != "")
+    {
+        ui->lineEdit_2->setText(filename);
+        settings.setValue("new_core", filename);
+    }
 }
 
-void MainWindow::Fota_Creat_Patch(QString patchName)
+
+
+
+
+int MainWindow::Fota_Creat_Patch(QString patchName)
 {
-    QString str ="./jdiff081/win32/jdiff.exe";
-    QStringList args;
-    // args.append("-vv");
-    args.append(ui->lineEdit->text());
-    args.append(ui->lineEdit_2->text());
-    args.append(patchName);
-    process->start(str,args);
-    process->waitForFinished();
+    int val;
+    static char old_core[1024] = {0}, new_core[1024] = {0};
+    char *buff[4];
+    memset(old_core, 0x00, sizeof(old_core));
+    memset(new_core, 0x00, sizeof(new_core));
+    memcpy(old_core,ui->lineEdit->text().toStdString().c_str(), strlen(ui->lineEdit->text().toStdString().c_str()));
+    memcpy(new_core,ui->lineEdit_2->text().toStdString().c_str(), strlen(ui->lineEdit_2->text().toStdString().c_str()));
+    buff[0] = (char *)"jdiff.exe";
+    buff[1] = old_core;
+    buff[2] = new_core;
+    buff[3] = (char *)"diff.patch";
+
+    val =  jdiff_main(4, buff);
+    qDebug() << val;
+    qDebug() << buff[0];
+    qDebug() << buff[1];
+    qDebug() << buff[2];
+    qDebug() << buff[3];
+    return val;
 }
 
 /* 获取文件CRC */
@@ -133,7 +168,7 @@ QString quint32ToHex(quint32 value)
     return QString::number(value, 16).toUpper();
 }
 
-quint8 Fota_Creat_Patch_Bin(QString fileName, struct fota_file_info *info)
+int Fota_Creat_Patch_Bin(QString fileName, struct fota_file_info *info)
 {
     quint8 val;
     QFile outfile(fileName);
@@ -178,11 +213,14 @@ quint8 Fota_Creat_Patch_Bin(QString fileName, struct fota_file_info *info)
         outStream << val;
     }
 
+    patchfile.remove();
+
     return 0;
 }
 
 void MainWindow::on_pushButton_3_clicked()
 {
+    int val;
     QString hexString;
     struct fota_file_info fota_file_info[3];
     ui->textEdit->clear();
@@ -190,8 +228,24 @@ void MainWindow::on_pushButton_3_clicked()
     QFileInfo fileInfo_new(ui->lineEdit_2->text());
 
     ui->textEdit->insertPlainText("Diffing " + fileInfo_old.fileName() + " and " + fileInfo_new.fileName() + "\r\n");
+
+    if(ui->lineEdit_3->text() == "")
+    {
+        ui->textEdit->insertPlainText("Please enter the patch generation path and file!!\r\n");
+        return;
+    }
+
     ui->textEdit->insertPlainText("Creating patch\r\n");
-    Fota_Creat_Patch("diff.patch");
+    val = Fota_Creat_Patch("diff.patch");
+    if(val < 0){
+        ui->textEdit->insertPlainText("File Error!!\r\n");
+        return;
+    }
+    else if(val == 1){
+        ui->textEdit->insertPlainText("Old File And New File Same!!\r\n");
+        return;
+    }
+
     ui->textEdit->insertPlainText("Create patch success!!\r\n");
 
     /* 获取源代码bin大小和CRC */
@@ -225,11 +279,40 @@ void MainWindow::on_pushButton_3_clicked()
 
     /* 创建带有校验信息的补丁包 */
     ui->textEdit->insertPlainText("\r\nAdd FileInfo to diff.patch\r\n");
-    Fota_Creat_Patch_Bin(FOTA_FILE_PATCH_BIN_NAME, fota_file_info);
-    ui->textEdit->insertPlainText("Creat diff.bin\r\n");
+    QString fileName = ui->lineEdit_3->text();
+    QFileInfo fileInfo_patch(fileName);
+    if(fileInfo_patch.fileName() == "")
+    {
+        fileName = fileName + "patch";
+    }
+    if(fileInfo_patch.suffix() != ".bin")
+    {
+        fileName = fileName + ".bin";
+    }
+    QFileInfo fileInfo_patch_new(fileName);
+    Fota_Creat_Patch_Bin(fileName, fota_file_info);
+    ui->textEdit->insertPlainText("Creat " + fileInfo_patch_new.fileName() + "\r\n");
 }
 
 void MainWindow::LogOut()
 {
     ui->textEdit->insertPlainText(process->readAllStandardOutput());
 }
+
+void MainWindow::on_pushButton_4_clicked()
+{
+    QString configPath = "config.ini";
+    QSettings settings(configPath, QSettings::IniFormat);
+
+    QString patch_core = settings.value("patch_core").toString();
+
+    QDir dir(patch_core);
+    QString filename = QFileDialog::getOpenFileName(this, ui->label_3->text() + "选择",
+                                                    dir.absolutePath(),"Images(*.bin)");
+    if(filename != "")
+    {
+        ui->lineEdit_3->setText(filename);
+        settings.setValue("patch_core", filename);
+    }
+}
+
