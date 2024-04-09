@@ -285,7 +285,7 @@ void MainWindow::on_pushButton_3_clicked()
     {
         fileName = fileName + "patch";
     }
-    if(fileInfo_patch.suffix() != ".bin")
+    if(fileInfo_patch.suffix() != "bin")
     {
         fileName = fileName + ".bin";
     }
@@ -308,7 +308,7 @@ void MainWindow::on_pushButton_4_clicked()
 
     QDir dir(patch_core);
     QString filename = QFileDialog::getOpenFileName(this, ui->label_3->text() + "选择",
-                                                    dir.absolutePath(),"Images(*.bin)");
+                                                    dir.absolutePath(),"Images(*.bin);;All Files (*)");
     if(filename != "")
     {
         ui->lineEdit_3->setText(filename);
